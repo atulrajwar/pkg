@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Bold Event Stream Tester</title>
+    <script src="./boldEventStream.js"></script>
+    <!-- <script src="./out/boldEventStream.min.js"></script> -->
+    <script>
+        window.addEventListener('load', function () {
+
+            if (BoldEventStream) {
+                console.log("BoldEventStream Found.");
+            }
+            else
+                console.log("Why is BoldEventStream not Found ???");
+        });
+
+        function initialize(source) {
+            let parentHtmlNode = (document.head == null ? document.body : document.head);
+            configObject = BoldEventStream.ClassInitializers.getNewConfigurationObject();
+            
+            
+            //For Testing Only Start 
+            configObject.Commons.enableConsoleLogging = true;
+            configObject.Commons.enableErrorThrown = true;
+            configObject.Commons.defaultClientToInitialize = source;
+            configObject.AjaxDetails.eventsPostEndpointUrl = "api/EventsStream";
+
+            //Azure Config
+            // configObject.MqttDetails.mqttHost = "dev-mqtt.livecareer.com";
+            // configObject.MqttDetails.mqttPort = 30001;
+            // configObject.MqttDetails.mqttUserName = "mttquser";
+            // configObject.MqttDetails.mqttPassword = "GfrqH8rPTgnnrM4";
+
+            //VM Config
+            configObject.MqttDetails.mqttHost = "poc-events-analytics.canadacentral.cloudapp.azure.com";
+            configObject.MqttDetails.mqttPort = 9001;
+            configObject.MqttDetails.mqttUserName = "mttquser";
+            configObject.MqttDetails.mqttPassword = "GfrqH8rPTgnnrM4";
+            configObject.MqttDetails.mqttIsSecureConnection = false;
+
+            //Local Config
+            // configObject.MqttDetails.mqttHost = "localhost";
+            // configObject.MqttDetails.mqttPort = 9001;
+            // configObject.MqttDetails.mqttUserName = "testuser1";
+            // configObject.MqttDetails.mqttPassword = "pass123";
+            // configObject.MqttDetails.mqttIsSecureConnection = false;
+
+            //For Testing Only End
+
+            BoldEventStream.InitializeBoldStreamObjectAsync(window, parentHtmlNode, configObject)
+                .then(function () {
+                    console.log("*************************loaded message from html *********************  ");
+                    //for testing
+                    //BoldEventStream.subscribeToTopic(onMsg, BoldEventStream.Enums.EventSubTypesEnum.AutoComplete.toString());
+                }).catch(function (e) {
+                    console.log("************************Failed message from html *************************** " + e.message);
+                });
+        }
+
+        function sendOneEvent(source, force = false) {
+            var props = new BoldEventStream.ClassInitializers.SendEventProperties();
+            props.sendClientToUse = source;
+            props.forcePush = force;
+            //var event = BoldEventStream.ClassInitializers.getNewBoldEventObject(BoldEventStream.Enums.EventSubTypes.AutoComplete.JobTitleClicked);
+            //event.SearchTerm = "alpha beta gama - " + new Date();
+
+            var event = BoldEventStream.ClassInitializers.getNewBoldEventObject(BoldEventStream.Enums.EventSubTypes.Dictionary.SpellCheck);
+            event.PayloadSize=10;
+            //send event
+            BoldEventStream.sendEventToServerAsync(event, props);
+        }
+        function subscribeToTopic() {
+            var props = new BoldEventStream.ClassInitializers.SubscribeToTopicProperties();
+            props.topicToSubscribe = BoldEventStream.Enums.EventSubTypes.AutoComplete.toString()
+            props.callBackFunction = onMsg
+            BoldEventStream.subscribeToTopicAsync(props);
+        }
+
+        function onMsg(msg) {
+            //out_msg = "Message received " + msg.payloadString + "---";
+            //out_msg = out_msg + "Message received Topic " + msg.destinationName;
+            //console.log(out_msg);
+            var element = document.getElementById("subsData");
+            var eventObj = JSON.parse(msg.payloadString);
+            var evDate = new Date(eventObj.messageSendTimeUtc);
+            var timeDiff = Math.abs(new Date() - evDate);// / 1000
+
+
+            element.value = `${element.value}\n Message Received in - ${timeDiff}ms\n**************\n`;
+        }
+
+    </script>
+</head>
+
+<body>
+    <h1>Bold Event Stream Tester</h1>
+    <div>
+        <p>
+            <div>
+                <table>
+                    <tr>
+                        <td><b>Initialize->> </b></td>
+                        <td> <input type="button" onclick="initialize(BoldEventStream.Enums.SendClientToUse.All);"
+                                value="All" /></td>
+                        <td> <input type="button" onclick="initialize(BoldEventStream.Enums.SendClientToUse.Mqtt);"
+                                value="Mqtt" /></td>
+                        <td> <input type="button" onclick="initialize(BoldEventStream.Enums.SendClientToUse.Ajax);"
+                                value="Ajax" /></td>
+
+                    </tr>
+                    <tr>
+                        <td><br /></td>
+                    </tr>
+                    <tr>
+                        <td><b>Send--->>> </b></td>
+                        <td><input type="button" onclick="subscribeToTopic();" value="Subscribe" /></td>
+                        <td><input type="button" onclick="sendOneEvent(BoldEventStream.Enums.SendClientToUse.Mqtt);"
+                                value="Mqtt" /></td>
+                        <td><input type="button" onclick="sendOneEvent(BoldEventStream.Enums.SendClientToUse.Ajax);"
+                                value="Ajax" /></td>
+                        <td><input type="button"
+                                onclick="sendOneEvent(BoldEventStream.Enums.SendClientToUse.Ajax ,true);"
+                                value="Ajax Force" /></td>
+
+                    </tr>
+                    <tr>
+                        <td><br /></td>
+                    </tr>
+                    <tr>
+                        <td><input type="button" onclick="document.getElementById('subsData').value='';"
+                                value="Clear All" /></td>
+                    </tr>
+                </table>
+            </div>
+        </p>
+        <p>
+            <div>
+                <textarea rows="50" cols="50" id="subsData" value="" placeholder="Subscribed Data Here"
+                    disabled="disabled" aria-label="Subscribed"></textarea>
+            </div>
+        </p>
+    </div>
+</body>
+
+</html>
